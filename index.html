@@ -531,6 +531,9 @@
             scroll-behavior: smooth;
             will-change: scroll-position;
             touch-action: pan-y;
+            /* Isolate scroll - prevent propagation to body */
+            overscroll-behavior: contain;
+            overscroll-behavior-y: contain;
             /* Visible scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #ccc transparent;
@@ -807,6 +810,9 @@
             scroll-behavior: smooth;
             will-change: scroll-position;
             touch-action: pan-y;
+            /* Isolate scroll - prevent propagation to body */
+            overscroll-behavior: contain;
+            overscroll-behavior-y: contain;
             /* Visible scrollbar untuk debugging */
             scrollbar-width: thin;
             scrollbar-color: #ccc transparent;
@@ -1117,11 +1123,36 @@
         /* 5. Tab form boleh scroll sendiri */
         #productsModal #productFormTab {
             overflow-y: auto;
+            overflow-x: hidden;
             padding-bottom: 20px;
             /* Smooth scroll optimization */
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
             will-change: scroll-position;
+            touch-action: pan-y;
+            /* Isolate scroll - prevent propagation to body */
+            overscroll-behavior: contain;
+            overscroll-behavior-y: contain;
+            /* Visible scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+        
+        #productsModal #productFormTab::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #productsModal #productFormTab::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #productsModal #productFormTab::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        #productsModal #productFormTab::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
 
         /* 6. Search bar: tidak ikut scroll */
@@ -1196,6 +1227,30 @@
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
             will-change: scroll-position;
+            touch-action: pan-y pan-x;
+            /* Isolate scroll - prevent propagation to body */
+            overscroll-behavior: contain;
+            /* Visible scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+        
+        #productsModal .table-wrapper::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        #productsModal .table-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #productsModal .table-wrapper::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        #productsModal .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
 
         /* 8. thead sticky: bekerja karena scroll ada di .table-wrapper */
@@ -1371,11 +1426,16 @@
         .recheck-items {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 12px 14px;
             /* Smooth scroll optimization */
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
             will-change: scroll-position;
+            touch-action: pan-y;
+            /* Isolate scroll - prevent propagation */
+            overscroll-behavior: contain;
+            overscroll-behavior-y: contain;
         }
         .recheck-item {
             display: flex;
@@ -1535,7 +1595,35 @@
         .modal-body {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px 28px;
+            /* Smooth scroll optimization */
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            touch-action: pan-y;
+            /* Isolate scroll - prevent propagation */
+            overscroll-behavior: contain;
+            overscroll-behavior-y: contain;
+            /* Visible scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+        
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
 
         .modal-footer {
@@ -2224,7 +2312,7 @@
                 </div>
 
                 <!-- Table wrapper: SCROLL ADA DI SINI, header sticky -->
-                <div class="table-wrapper" style="flex:1;min-height:0;overflow:auto;border-radius:12px;border:1px solid #E9ECEF;margin-bottom:8px">
+                <div class="table-wrapper" style="flex:1;min-height:0;overflow:auto;border-radius:12px;border:1px solid #E9ECEF;margin-bottom:8px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y pan-x">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -2248,7 +2336,7 @@
             </div><!-- end productListTab -->
 
             <!-- ===== TAB: TAMBAH / EDIT PRODUK ===== -->
-            <div class="tab-content" id="productFormTab" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+            <div class="tab-content" id="productFormTab" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-bottom:20px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y">
                 <h3 id="productFormTitle" style="margin-bottom:16px">Tambah Produk Baru</h3>
                 <input type="hidden" id="editProductId" value="">
 
@@ -6456,17 +6544,31 @@ document.addEventListener('keydown', function(e) {
 </script>
 <script>
 // ============================================================
-// BLOCK PULL-TO-REFRESH — Huawei MateTab / Android Chrome
-// Mencegah refresh halaman saat swipe bawah ke atas dari atas
+// BLOCK PULL-TO-REFRESH & BODY SCROLL — Huawei MateTab / Android Chrome
+// Mencegah refresh halaman dan scroll body yang tidak diinginkan
 // ============================================================
 (function() {
     let lastTouchY = 0;
     let touchStartY = 0;
+    let isInScrollableArea = false;
 
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length === 1) {
             touchStartY = e.touches[0].clientY;
             lastTouchY  = e.touches[0].clientY;
+            
+            // Cek apakah touch dimulai di dalam scrollable area
+            let el = e.target;
+            isInScrollableArea = false;
+            while (el && el !== document.body) {
+                const style = window.getComputedStyle(el);
+                const overflowY = style.overflowY;
+                if (overflowY === 'auto' || overflowY === 'scroll') {
+                    isInScrollableArea = true;
+                    break;
+                }
+                el = el.parentElement;
+            }
         }
     }, { passive: true });
 
@@ -6475,24 +6577,45 @@ document.addEventListener('keydown', function(e) {
         const deltaY = touch.clientY - lastTouchY;
         lastTouchY = touch.clientY;
 
-        // Cek apakah scroll container saat ini sudah di paling atas
+        // Cek apakah di dalam scroll container
         let el = e.target;
+        let scrollableContainer = null;
         let scrollableAtTop = false;
+        let scrollableAtBottom = false;
+        
         while (el && el !== document.body) {
             const style = window.getComputedStyle(el);
             const overflowY = style.overflowY;
             const isScrollable = (overflowY === 'auto' || overflowY === 'scroll');
-            if (isScrollable && el.scrollTop === 0 && deltaY > 0) {
-                scrollableAtTop = true;
+            
+            if (isScrollable) {
+                scrollableContainer = el;
+                scrollableAtTop = el.scrollTop === 0;
+                scrollableAtBottom = (el.scrollTop + el.clientHeight) >= el.scrollHeight - 1;
                 break;
             }
-            if (isScrollable) break; // ada scroll container tapi tidak di atas
             el = el.parentElement;
         }
 
-        // Jika di paling atas body dan swipe ke bawah → block
+        // Jika di dalam scrollable container
+        if (scrollableContainer) {
+            // Block pull-to-refresh saat scroll di atas
+            if (scrollableAtTop && deltaY > 0) {
+                e.preventDefault();
+                return;
+            }
+            // Block overscroll saat scroll di bawah (KUNCI FIX MATEPADE!)
+            if (scrollableAtBottom && deltaY < 0) {
+                e.preventDefault();
+                return;
+            }
+            // Biarkan scroll normal di tengah
+            return;
+        }
+
+        // Jika di luar scrollable container, block semua scroll vertikal
         const bodyAtTop = document.documentElement.scrollTop === 0 && window.scrollY === 0;
-        if ((bodyAtTop || scrollableAtTop) && deltaY > 0) {
+        if (bodyAtTop && deltaY > 0) {
             e.preventDefault();
         }
     }, { passive: false }); // passive: false wajib agar preventDefault bekerja
@@ -6501,6 +6624,7 @@ document.addEventListener('keydown', function(e) {
     document.addEventListener('touchend', function() {
         lastTouchY = 0;
         touchStartY = 0;
+        isInScrollableArea = false;
     }, { passive: true });
 })();
 </script>
