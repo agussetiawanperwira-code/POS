@@ -72,19 +72,17 @@
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
 
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             color: var(--dark);
-            /* Block pull-to-refresh di Android/Huawei */
-            overscroll-behavior-y: none;
-            overscroll-behavior: none;
         }
-        html {
-            overscroll-behavior-y: none;
-            overscroll-behavior: none;
         }
 
         /* LOGIN SCREEN */
@@ -210,25 +208,25 @@
 
         /* MAIN APP */
         .main-app {
-            touch-action: pan-y;   /* biarkan scroll vertikal, block gestures browser */
             display: none;
             padding: 20px;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            overflow: hidden;
         }
 
         .main-app.active {
-            display: block;
+            display: grid;
         }
 
         .container {
-        width: 100%;
-        height: calc(100vh - 120px); /* sesuaikan tinggi header */
-        display: grid;
-        grid-template-columns: 70% 30%;
-        gap: 20px;
+            display: grid;
+            grid-template-columns: 65% 35%;
+            gap: 20px;
+            overflow: hidden;
         }
 
         .header {
-            grid-column: 1 / -1;
             background: white;
             padding: 20px 32px;
             border-radius: 16px;
@@ -332,6 +330,10 @@
             padding: 20px;
             border-radius: 16px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+
+            overflow-y: auto;                /* WAJIB */
+            overscroll-behavior-y: contain;  /* cegah refresh */
+            -webkit-overflow-scrolling: touch; /* smooth di Android */
         }
 
         .section-header {
