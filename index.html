@@ -2136,7 +2136,7 @@
                 <div class="user-info">
                     <div class="user-info-text">
                         <div class="user-name" id="userName">Admin</div>
-                        <div class="user-role" id="userRole">Administrator</div>
+                        <div class="user-role" id="userRoleDisplay">Administrator</div>
                     </div>
                 </div>
                 
@@ -2848,9 +2848,21 @@ let storeSettings = {
 
 // DEFAULT USERS
 const defaultUsers = {
-    admin: { password: 'admin123', name: 'Administrator', role: 'admin' },
-    kasir: { password: 'kasir123', name: 'Kasir',         role: 'kasir' },
-    owner: { password: 'owner123', name: 'Owner',         role: 'owner' }
+    admin: { 
+        password: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // admin123
+        name: 'Administrator', 
+        role: 'admin' 
+    },
+    kasir: { 
+        password: 'f02b7c1e519e4fa436147f7e1399974f9510aa9c8e0cb8be29151eb540f9d214', // kasir123
+        name: 'Kasir', 
+        role: 'kasir' 
+    },
+    owner: { 
+        password: '4a76a1c835560505ac45bb49ac287ba672d7d2b5fe00660b42295f75963d00ba', // owner123
+        name: 'Owner', 
+        role: 'owner' 
+    }
 };
 
 // DEFAULT PRODUCTS
@@ -3353,7 +3365,9 @@ function login() {
         return;
     }
 
-    if (user.password !== password) {
+    // PERBAIKAN BUG #2: Hash password input untuk dibandingkan dengan password tersimpan
+    const hashedPassword = CryptoJS.SHA256(password).toString();
+    if (user.password !== hashedPassword) {
         alert('Password salah! Silakan coba lagi.');
         return;
     }
@@ -3370,7 +3384,7 @@ function login() {
     
     // Update UI
     document.getElementById('userName').textContent = currentUser.name;
-    document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
+    document.getElementById('userRoleDisplay').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
     
     // Show main app
     document.getElementById('loginScreen').style.display = 'none';
@@ -3410,7 +3424,7 @@ function checkAuth() {
     if (saved) {
         currentUser = JSON.parse(saved);
         document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
+        document.getElementById('userRoleDisplay').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').classList.add('active');
         applyRoleUI();
@@ -3905,6 +3919,17 @@ function resetCart() {
     document.getElementById('paymentAmount').value = '';
     document.getElementById('additionalDiscount').value = '';
     document.getElementById('changeDisplay').style.display = 'none';
+    
+    // PERBAIKAN BUG #1: Reset display diskon agar tidak muncul di struk berikutnya
+    const discountDisplay = document.getElementById('discountDisplay');
+    if (discountDisplay) {
+        discountDisplay.style.display = 'none';
+    }
+    const discountAmount = document.getElementById('discountAmount');
+    if (discountAmount) {
+        discountAmount.textContent = 'Rp 0';
+    }
+    
     closeRecheckPanel();
     renderCart();
     updateSummary();
@@ -4277,7 +4302,8 @@ function showDiscountModal(cartKey) {
 function closeDiscountModal() {
     document.getElementById('discountModal').classList.remove('active');
     document.getElementById('discountPreview').style.display = 'none';
-    discountItemId = null;
+    // PERBAIKAN BUG #3: reset currentDiscountItemId bukan discountItemId
+    currentDiscountItemId = null;
 }
 
 function setDiscountType(type) {
@@ -4297,8 +4323,8 @@ function setDiscountType(type) {
         label.textContent = 'Persentase Diskon (%)';
     }
     
-    // Update preview
-    const item = cart.find(i => i.id === discountItemId);
+    // Update preview - PERBAIKAN BUG #3: gunakan currentDiscountItemId (cartKey)
+    const item = cart.find(i => i.cartKey === currentDiscountItemId);
     if (item) updateDiscountPreview(item);
 }
 
@@ -4333,14 +4359,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountInput = document.getElementById('discountValue');
     if (discountInput) {
         discountInput.addEventListener('input', function() {
-            const item = cart.find(i => i.id === discountItemId);
+            // PERBAIKAN BUG #3: gunakan currentDiscountItemId (cartKey)
+            const item = cart.find(i => i.cartKey === currentDiscountItemId);
             if (item) updateDiscountPreview(item);
         });
     }
 });
 
 function applyDiscount() {
-    const item = cart.find(i => i.id === discountItemId);
+    // PERBAIKAN BUG #3: Gunakan currentDiscountItemId yang berisi cartKey
+    const item = cart.find(i => i.cartKey === currentDiscountItemId);
     if (!item) return;
     
     const pricing = calculatePrice(item, item.quantity);
@@ -5726,6 +5754,12 @@ function initializeApp() {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
+    // PERBAIKAN: Pastikan defaultUsers tersimpan di localStorage jika belum ada
+    if (!localStorage.getItem('posUsers')) {
+        localStorage.setItem('posUsers', JSON.stringify(defaultUsers));
+        console.log('✅ Default users created in localStorage');
+    }
+    
     // Load store settings first (before login)
     const savedSettings = localStorage.getItem('storeSettings');
     if (savedSettings) {
@@ -6150,7 +6184,7 @@ function saveUser() {
         }
         
         users[username] = {
-            password: password,
+            password: CryptoJS.SHA256(password).toString(),
             name: fullName,
             role: role,
             createdAt: new Date().toISOString()
@@ -6172,7 +6206,7 @@ function saveUser() {
                 return;
             }
             
-            users[editingUsername].password = password;
+            users[editingUsername].password = CryptoJS.SHA256(password).toString();
         }
         
         users[editingUsername].name = fullName;
@@ -6187,7 +6221,7 @@ function saveUser() {
             
             // Update display
             document.getElementById('userName').textContent = fullName;
-            document.getElementById('userRole').textContent = role === 'admin' ? 'Administrator' : 'Kasir';
+            document.getElementById('userRoleDisplay').textContent = role === 'admin' ? 'Administrator' : 'Kasir';
         }
         
         alert('\u2705 Data user berhasil diupdate!');
