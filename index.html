@@ -2136,7 +2136,7 @@
                 <div class="user-info">
                     <div class="user-info-text">
                         <div class="user-name" id="userName">Admin</div>
-                        <div class="user-role" id="userRoleDisplay">Administrator</div>
+                        <div class="user-role" id="userRole">Administrator</div>
                     </div>
                 </div>
                 
@@ -2848,20 +2848,20 @@ let storeSettings = {
 
 // DEFAULT USERS
 const defaultUsers = {
-    admin: { 
-        password: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', // admin123
-        name: 'Administrator', 
-        role: 'admin' 
+    admin: {
+        password: CryptoJS.SHA256('admin123').toString(),
+        name: 'Administrator',
+        role: 'admin'
     },
-    kasir: { 
-        password: 'f02b7c1e519e4fa436147f7e1399974f9510aa9c8e0cb8be29151eb540f9d214', // kasir123
-        name: 'Kasir', 
-        role: 'kasir' 
+    kasir: {
+        password: CryptoJS.SHA256('kasir123').toString(),
+        name: 'Kasir',
+        role: 'kasir'
     },
-    owner: { 
-        password: '4a76a1c835560505ac45bb49ac287ba672d7d2b5fe00660b42295f75963d00ba', // owner123
-        name: 'Owner', 
-        role: 'owner' 
+    owner: {
+        password: CryptoJS.SHA256('owner123').toString(),
+        name: 'Owner',
+        role: 'owner'
     }
 };
 
@@ -3336,39 +3336,25 @@ function resetLoginData() {
 function login() {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
-
+    
     if (!username || !password) {
         alert('Username dan password harus diisi!');
         return;
     }
-
-    // Ambil data user \u2014 jika localStorage corrupt, pakai default
-    let users;
-    try {
-        const raw = localStorage.getItem('posUsers');
-        users = raw ? JSON.parse(raw) : defaultUsers;
-        // Validasi struktur \u2014 jika format lama (hash), reset ke default
-        const testUser = Object.values(users)[0];
-        if (testUser && testUser.password && testUser.password.length > 30) {
-            // Format lama pakai hash panjang \u2014 reset
-            console.warn('Format user lama terdeteksi, reset ke default');
-            localStorage.removeItem('posUsers');
-            users = defaultUsers;
-        }
-    } catch(e) {
-        users = defaultUsers;
-    }
-
+    
+    // Get users - gunakan defaultUsers jika belum ada di localStorage
+    const users = JSON.parse(localStorage.getItem('posUsers') || JSON.stringify(defaultUsers));
     const user = users[username];
+    
     if (!user) {
         alert('Username tidak ditemukan!');
         return;
     }
-
-    // PERBAIKAN BUG #2: Hash password input untuk dibandingkan dengan password tersimpan
+    
+    // Hash password input dan bandingkan
     const hashedPassword = CryptoJS.SHA256(password).toString();
     if (user.password !== hashedPassword) {
-        alert('Password salah! Silakan coba lagi.');
+        alert('Password salah!');
         return;
     }
     
@@ -3384,7 +3370,7 @@ function login() {
     
     // Update UI
     document.getElementById('userName').textContent = currentUser.name;
-    document.getElementById('userRoleDisplay').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
+    document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
     
     // Show main app
     document.getElementById('loginScreen').style.display = 'none';
@@ -3424,7 +3410,7 @@ function checkAuth() {
     if (saved) {
         currentUser = JSON.parse(saved);
         document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userRoleDisplay').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
+        document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : (currentUser.role === 'owner' ? 'Owner' : 'Kasir');
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').classList.add('active');
         applyRoleUI();
@@ -6111,7 +6097,8 @@ function openAddUserModal() {
     document.getElementById('userFullName').value = '';
     document.getElementById('userPassword').value = '';
     document.getElementById('userPasswordConfirm').value = '';
-    document.getElementById('userRole').value = 'kasir';
+    // FIX: Gunakan querySelector untuk menghindari duplicate ID issue
+    document.querySelector('#userFormModal #userRole').value = 'kasir';
     document.getElementById('passwordHint').textContent = 'Minimal 6 karakter';
     document.getElementById('passwordHint').style.display = 'block';
     
@@ -6137,7 +6124,8 @@ function editUser(username) {
     document.getElementById('userFullName').value = user.name;
     document.getElementById('userPassword').value = '';
     document.getElementById('userPasswordConfirm').value = '';
-    document.getElementById('userRole').value = user.role;
+    // FIX: Gunakan querySelector untuk menghindari duplicate ID issue
+    document.querySelector('#userFormModal #userRole').value = user.role;
     document.getElementById('passwordHint').textContent = 'Kosongkan jika tidak ingin mengubah password';
     document.getElementById('passwordHint').style.display = 'block';
     
@@ -6151,7 +6139,8 @@ function saveUser() {
     const fullName = document.getElementById('userFullName').value.trim();
     const password = document.getElementById('userPassword').value;
     const passwordConfirm = document.getElementById('userPasswordConfirm').value;
-    const role = document.getElementById('userRole').value;
+    // FIX: Gunakan querySelector untuk menghindari duplicate ID issue
+    const role = document.querySelector('#userFormModal #userRole').value;
     
     // Validasi
     if (!username || !fullName) {
@@ -6221,7 +6210,7 @@ function saveUser() {
             
             // Update display
             document.getElementById('userName').textContent = fullName;
-            document.getElementById('userRoleDisplay').textContent = role === 'admin' ? 'Administrator' : 'Kasir';
+            document.getElementById('userRole').textContent = role === 'admin' ? 'Administrator' : 'Kasir';
         }
         
         alert('\u2705 Data user berhasil diupdate!');
