@@ -416,6 +416,7 @@
             height: 100%;
             min-height: 0;
             overflow: hidden;
+            isolation: isolate;
         }
 
         .section-header {
@@ -737,6 +738,8 @@
             min-height: 0;
             position: relative;
             overflow: hidden;
+            isolation: isolate;
+            z-index: 10;
         }
 
         .cart-header {
@@ -927,15 +930,29 @@
         }
 
         .remove-btn {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             border: none;
             background: var(--danger);
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             touch-action: manipulation;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(239,71,111,0.4);
+            transition: background 0.15s, transform 0.1s;
+        }
+        .remove-btn:hover {
+            background: #d63060;
+        }
+        .remove-btn:active {
+            transform: scale(0.92);
         }
 
         .cart-empty {
@@ -1255,7 +1272,8 @@
 
         /* 8. thead sticky: bekerja karena scroll ada di .table-wrapper */
         #productsModal .data-table {
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             border-radius: 0;
         }
         #productsModal .data-table thead th {
@@ -1269,8 +1287,12 @@
             white-space: nowrap;
             padding: 14px 12px;
             border-bottom: 3px solid var(--primary);
+            /* Pastikan sticky bekerja di Android WebView */
+            will-change: transform;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
         }
-        #productsModal .data-table td        { font-size: 14px; padding: 13px 12px; }
+        #productsModal .data-table td        { font-size: 14px; padding: 10px 10px; }
         #productsModal .data-table tbody tr:hover { background: #FFF5F0; cursor: pointer; }
         .pf-section {
             background: #F8F9FA;
@@ -1524,6 +1546,10 @@
             width: 100%;
             padding: 12px;
             font-size: 15px;
+            position: relative;
+            z-index: 1;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
         }
 
         .btn-checkout:hover {
@@ -2316,17 +2342,15 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th style="width:36px;text-align:center">#</th>
-                                <th style="width:48px;text-align:center">Icon</th>
-                                <th style="min-width:180px">Nama Produk</th>
-                                <th style="min-width:140px">💰 Kulakan/Satuan</th>
-                                <th style="min-width:145px">📦 Kulakan/Kemasan</th>
-                                <th style="min-width:130px">Harga Eceran</th>
-                                <th style="min-width:80px;text-align:center">Margin</th>
-                                <th style="min-width:155px">Grosir Satuan</th>
-                                <th style="min-width:185px">Harga Kemasan</th>
-                                <th style="min-width:110px">Stok</th>
-                                <th style="min-width:115px">Aksi</th>
+                                <th style="width:32px;text-align:center">#</th>
+                                <th style="width:44px;text-align:center">Icon</th>
+                                <th style="min-width:120px;max-width:160px">Nama Produk</th>
+                                <th style="min-width:130px">💰 Kulakan/Satuan</th>
+                                <th style="min-width:130px">📦 Kulakan/Kemasan</th>
+                                <th style="min-width:160px">Harga Satuan</th>
+                                <th style="min-width:160px">Harga Kemasan</th>
+                                <th style="min-width:95px">Stok</th>
+                                <th style="min-width:110px">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="productTableBody"></tbody>
@@ -2351,7 +2375,7 @@
                             <div class="pf-row">
                                 <div class="form-group" style="flex:2">
                                     <label class="form-label">Nama Produk *</label>
-                                    <input type="text" class="form-input" id="productName" placeholder="Contoh: Mie Goreng Indomie">
+                                    <input type="text" class="form-input" id="productName" placeholder="Contoh: Mie Goreng Indomie" onfocus="this.setAttribute('data-ph',this.placeholder);this.placeholder=''" onblur="this.placeholder=this.getAttribute('data-ph')">
                                 </div>
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Kategori *</label>
@@ -2420,8 +2444,8 @@
                             <div class="pf-row">
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Harga Beli per <span id="kulakanPkgLabel">Kemasan</span> (Rp)</label>
-                                    <input type="number" class="form-input" id="costPricePerPkg"
-                                        placeholder="Contoh: 80000" min="0" oninput="recalcKulakan()"
+                                    <input type="text" inputmode="numeric" class="form-input" id="costPricePerPkg"
+                                        placeholder="Contoh: Rp 80.000" oninput="formatCurrencyInput(this);recalcKulakan()"
                                         style="font-size:18px;font-weight:700;border-color:var(--secondary)">
                                 </div>
                                 <div class="form-group" style="flex:1">
@@ -2456,15 +2480,15 @@
                             <div class="pf-row">
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Harga Eceran / <span id="pkgTypeLabel2">Kemasan</span></label>
-                                    <input type="number" class="form-input" id="productPricePackage" placeholder="0" min="0"
-                                        oninput="updateMarginLive()"
+                                    <input type="text" inputmode="numeric" class="form-input" id="productPricePackage" placeholder="Rp 0"
+                                        oninput="formatCurrencyInput(this);updateMarginLive()"
                                         style="font-size:16px;font-weight:700;border-color:#F4A100">
                                     <div id="marginPkgLive" style="margin-top:4px;font-size:12px;font-weight:600;min-height:18px"></div>
                                 </div>
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Harga Grosir / <span id="pkgTypeLabel3">Kemasan</span></label>
-                                    <input type="number" class="form-input" id="productPriceWholesalePackage" placeholder="0" min="0"
-                                        oninput="updateMarginLive()">
+                                    <input type="text" inputmode="numeric" class="form-input" id="productPriceWholesalePackage" placeholder="Rp 0"
+                                        oninput="formatCurrencyInput(this);updateMarginLive()">
                                     <div id="marginWsPkgLive" style="margin-top:4px;font-size:12px;font-weight:600;min-height:18px"></div>
                                 </div>
                                 <div class="form-group" style="flex:1">
@@ -2493,8 +2517,8 @@
                             <div class="pf-row">
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Harga Eceran * (Rp)</label>
-                                    <input type="number" class="form-input" id="productPrice"
-                                        placeholder="0" min="0" oninput="updateMarginLive()"
+                                    <input type="text" inputmode="numeric" class="form-input" id="productPrice"
+                                        placeholder="Rp 0" oninput="formatCurrencyInput(this);updateMarginLive()"
                                         style="font-size:20px;font-weight:800;border-color:var(--primary)">
                                     <div id="marginEcerLive" style="margin-top:5px;font-size:12px;font-weight:600;min-height:18px"></div>
                                 </div>
@@ -2502,8 +2526,8 @@
                             <div class="pf-row">
                                 <div class="form-group" style="flex:1">
                                     <label class="form-label">Harga Grosir (Rp)</label>
-                                    <input type="number" class="form-input" id="productPriceWholesale"
-                                        placeholder="0" min="0" oninput="updateMarginLive()">
+                                    <input type="text" inputmode="numeric" class="form-input" id="productPriceWholesale"
+                                        placeholder="Rp 0" oninput="formatCurrencyInput(this);updateMarginLive()">
                                     <div id="marginGrosirLive" style="margin-top:5px;font-size:12px;font-weight:600;min-height:18px"></div>
                                 </div>
                                 <div class="form-group" style="flex:1">
@@ -2791,7 +2815,7 @@
             
             <div class="form-group">
                 <label id="discountInputLabel">Nilai Diskon (Rp)</label>
-                <input type="number" id="discountValue" class="form-control" placeholder="0" min="0" style="font-size:18px;text-align:center">
+                <input type="text" inputmode="numeric" id="discountValue" class="form-control" placeholder="0" style="font-size:18px;text-align:center;width:100%;padding:10px;border:2px solid #E9ECEF;border-radius:8px;font-family:'JetBrains Mono',monospace">
             </div>
             
             <div id="discountPreview" style="padding:16px;background:#e8f5e9;border-radius:8px;margin-top:16px;display:none">
@@ -2807,6 +2831,9 @@
                     <span style="font-weight:bold">Harga Setelah Diskon:</span>
                     <span id="finalPrice" style="font-weight:bold;color:var(--success);font-size:20px"></span>
                 </div>
+            </div>
+            <!-- Margin info: hanya untuk admin/owner -->
+            <div id="discountMarginInfo" style="display:none;margin-top:10px;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:600;border:2px solid #E9ECEF">
             </div>
         </div>
         
@@ -3156,8 +3183,10 @@ function buildEscPos(trx) {
     push(ESC,0x45,0x01); push(GS,0x21,0x10);
     line((storeSettings.name||'TOKO').toUpperCase());
     push(GS,0x21,0x00); push(ESC,0x45,0x00);
+    if (storeSettings.subtitle) line(storeSettings.subtitle.substring(0,W));
     if (storeSettings.address) line(storeSettings.address.substring(0,W));
     if (storeSettings.phone)   line('Telp: '+storeSettings.phone);
+    if (storeSettings.email)   line(storeSettings.email.substring(0,W));
     nl();
     // Info
     push(ESC,0x61,0x00); div();
@@ -3533,7 +3562,7 @@ function renderProducts() {
         const q     = (searchQuery || '').toLowerCase();
         const srcOk = !q || p.name.toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q);
         return catOk && srcOk;
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name, 'id'));
     
     console.log(`[renderProducts] Filtered: ${filtered.length} products`);
 
@@ -3556,7 +3585,8 @@ function renderProducts() {
         const stockPkgColor  = stockPkg  <= 2  ? 'var(--danger)' : '#888';
 
         if (currentMode === 'unit') {
-            // Card ECER — layout baru
+            // Card ECER — hanya tampilkan produk yang punya harga ecer
+            if (!p.price || p.price <= 0) return;
             const unit   = p.ecerUnit || p.unit || 'pcs';
             const hasWS  = p.priceWholesale && p.minWholesale > 0;
 
@@ -4058,8 +4088,10 @@ function showReceipt(transaction) {
             <div style="font-size:20px;margin-bottom:5px">${storeSettings.logo}</div>
             <div style="font-size:14px;font-weight:bold;margin-bottom:3px">${storeSettings.name}</div>
             <div style="font-size:9px;color:#666;margin-bottom:10px;line-height:1.3">
+                ${storeSettings.subtitle ? storeSettings.subtitle + '<br>' : ''}
                 ${storeSettings.address}<br>
                 Telp: ${storeSettings.phone}
+                ${storeSettings.email ? '<br>' + storeSettings.email : ''}
             </div>
             
             <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:8px 0;margin:10px 0">
@@ -4273,7 +4305,13 @@ function showDiscountModal(cartKey) {
     
     // Reset form
     discountType = 'nominal';
-    document.getElementById('discountValue').value = item.discount || '';
+    const discountEl = document.getElementById('discountValue');
+    if (item.discount > 0) {
+        discountEl.value = item.discount;
+        formatCurrencyInput(discountEl);
+    } else {
+        discountEl.value = '';
+    }
     setDiscountType('nominal');
     
     // Show modal
@@ -4288,25 +4326,41 @@ function showDiscountModal(cartKey) {
 function closeDiscountModal() {
     document.getElementById('discountModal').classList.remove('active');
     document.getElementById('discountPreview').style.display = 'none';
+    const mi = document.getElementById('discountMarginInfo');
+    if (mi) mi.style.display = 'none';
     // PERBAIKAN BUG #3: reset currentDiscountItemId bukan discountItemId
     currentDiscountItemId = null;
 }
 
 function setDiscountType(type) {
+    const prevType = discountType;
     discountType = type;
     
     const nominalBtn = document.getElementById('discountTypeNominal');
     const percentBtn = document.getElementById('discountTypePercent');
     const label = document.getElementById('discountInputLabel');
+    const discountEl = document.getElementById('discountValue');
+    
+    // Jika beralih tipe, kosongkan input
+    if (prevType !== type) {
+        discountEl.value = '';
+        document.getElementById('discountPreview').style.display = 'none';
+        const mi = document.getElementById('discountMarginInfo');
+        if (mi) mi.style.display = 'none';
+    }
     
     if (type === 'nominal') {
         nominalBtn.style.background = 'var(--primary)';
         percentBtn.style.background = 'var(--gray)';
         label.textContent = 'Nilai Diskon (Rp)';
+        discountEl.placeholder = 'Rp 0';
+        discountEl.inputMode = 'numeric';
     } else {
         nominalBtn.style.background = 'var(--gray)';
         percentBtn.style.background = 'var(--primary)';
         label.textContent = 'Persentase Diskon (%)';
+        discountEl.placeholder = '%';
+        discountEl.inputMode = 'decimal';
     }
     
     // Update preview - PERBAIKAN BUG #3: gunakan currentDiscountItemId (cartKey)
@@ -4317,7 +4371,16 @@ function setDiscountType(type) {
 function updateDiscountPreview(item) {
     const pricing = calculatePrice(item, item.quantity);
     const originalPrice = pricing.total;
-    const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+    const discountEl = document.getElementById('discountValue');
+    
+    // Format input Rp jika mode nominal
+    let discountValue = 0;
+    if (discountType === 'nominal') {
+        formatCurrencyInput(discountEl);
+        discountValue = parseCurrencyInput(discountEl) || 0;
+    } else {
+        discountValue = parseFloat(discountEl.value) || 0;
+    }
     
     let discountAmount = 0;
     if (discountType === 'nominal') {
@@ -4338,6 +4401,44 @@ function updateDiscountPreview(item) {
     document.getElementById('discountPreviewAmount').textContent = formatCurrency(discountAmount);
     document.getElementById('finalPrice').textContent = formatCurrency(finalPrice);
     document.getElementById('discountPreview').style.display = 'block';
+    
+    // Margin info — hanya admin/owner
+    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
+    const marginEl = document.getElementById('discountMarginInfo');
+    if (marginEl) {
+        if (isAdmin && discountAmount > 0) {
+            const costPrice = (item.costPrice || 0) * item.quantity;
+            if (costPrice > 0) {
+                const margin = finalPrice - costPrice;
+                const marginPct = ((margin / costPrice) * 100).toFixed(1);
+                const isLoss = margin < 0;
+                const color = isLoss ? '#c62828' : (parseFloat(marginPct) < 10 ? '#e65100' : '#2e7d32');
+                const bg = isLoss ? '#ffebee' : (parseFloat(marginPct) < 10 ? '#fff3e0' : '#e8f5e9');
+                const border = isLoss ? '#ef9a9a' : (parseFloat(marginPct) < 10 ? '#ffcc02' : '#a5d6a7');
+                marginEl.style.display = 'block';
+                marginEl.style.background = bg;
+                marginEl.style.borderColor = border;
+                marginEl.style.color = color;
+                marginEl.innerHTML = `
+                    📊 <strong>Info Margin (Admin):</strong><br>
+                    <span style="font-size:12px;font-weight:400">
+                        Modal: ${formatCurrency(costPrice)} &nbsp;·&nbsp;
+                        Harga jual setelah diskon: ${formatCurrency(finalPrice)}<br>
+                        Laba: ${formatCurrency(margin)} &nbsp;·&nbsp;
+                        Margin: <strong style="font-size:15px;color:${color}">${marginPct}%</strong>
+                        ${isLoss ? ' ⚠️ <strong>RUGI!</strong>' : ''}
+                    </span>`;
+            } else {
+                marginEl.style.display = 'block';
+                marginEl.style.background = '#f5f5f5';
+                marginEl.style.borderColor = '#ccc';
+                marginEl.style.color = '#888';
+                marginEl.innerHTML = '📊 <strong>Info Margin (Admin):</strong> Harga modal belum diset untuk produk ini.';
+            }
+        } else {
+            marginEl.style.display = 'none';
+        }
+    }
 }
 
 // Event listener untuk input diskon
@@ -4359,7 +4460,12 @@ function applyDiscount() {
     
     const pricing = calculatePrice(item, item.quantity);
     const originalPrice = pricing.total;
-    const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+    let discountValue = 0;
+    if (discountType === 'nominal') {
+        discountValue = parseCurrencyInput(document.getElementById('discountValue')) || 0;
+    } else {
+        discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+    }
     
     let discountAmount = 0;
     if (discountType === 'nominal') {
@@ -4423,6 +4529,8 @@ function openProducts() {
 
 function closeProductsModal() {
     document.getElementById('productsModal').classList.remove('active');
+    const s = document.getElementById('productSearchInput');
+    if (s) { s.value = ''; filterProductTable(''); }
 }
 
 function switchProductTab(tab) {
@@ -4450,14 +4558,14 @@ function renderProductTable(filter) {
     const q = (filter !== undefined ? filter : (document.getElementById('productSearchInput')?.value || '')).toLowerCase().trim();
     const tbody = document.getElementById('productTableBody');
 
-    const filtered = q
+    const filtered = (q
         ? products.filter(p =>
             p.name.toLowerCase().includes(q) ||
             (p.sku || '').toLowerCase().includes(q) ||
             (p.category || '').toLowerCase().includes(q) ||
             (p.ecerUnit || p.unit || '').toLowerCase().includes(q) ||
             (p.packageType || '').toLowerCase().includes(q))
-        : products;
+        : products).sort((a, b) => a.name.localeCompare(b.name, 'id'));
 
     // Update count label
     const countEl = document.getElementById('productSearchCount');
@@ -4488,26 +4596,41 @@ function renderProductTable(filter) {
             ? Math.round((p.price - costUnit) / costUnit * 100) : null;
         const marginPkg  = costPkg > 0 && p.pricePackage > 0
             ? Math.round((p.pricePackage - costPkg) / costPkg * 100) : null;
+        const profitEcer = (costUnit > 0 && p.price > 0) ? (p.price - costUnit) : null;
+        const profitPkg  = (costPkg > 0 && p.pricePackage > 0) ? (p.pricePackage - costPkg) : null;
 
-        function marginBadge(pct) {
+        function marginBadge(pct, profitRp) {
             if (pct === null) return '<span style="color:#ccc">—</span>';
             const col = pct >= 20 ? '#06D6A0' : pct >= 10 ? '#F4A100' : '#EF476F';
-            return `<span style="color:${col};font-weight:800;font-size:15px">${pct}%</span>`;
+            return `<span style="color:${col};font-weight:800;font-size:16px">${pct}%</span>`
+                 + (profitRp !== null ? `<br><small style="color:${col};font-size:11px;font-weight:600">+${formatCurrency(profitRp)}</small>` : '');
         }
 
         const stockPkg = qty > 0
-            ? `<br><small style="color:#888;font-size:12px">${Math.floor(p.stock / qty)} ${pkgType || 'kemasan'}</small>` : '';
+            ? `<br><span style="color:#555;font-size:15px;font-weight:700">(${Math.floor(p.stock / qty)} ${pkgType || 'kemasan'})</span>` : '';
 
         let hargaKemasan = '<span style="color:#ddd">—</span>';
         if (pkgType && qty > 0) {
+            const marginPkgCol = marginPkg !== null ? (marginPkg>=20?'#06D6A0':marginPkg>=10?'#F4A100':'#EF476F') : null;
             const bEcer   = p.pricePackage
-                ? `<div>Ecer: <b>${formatCurrency(p.pricePackage)}</b> ${marginPkg !== null ? `<span style="color:${marginPkg>=20?'#06D6A0':marginPkg>=10?'#F4A100':'#EF476F'};font-size:12px">${marginPkg}%</span>` : ''}</div>`
+                ? `<div><b style="font-size:15px">${formatCurrency(p.pricePackage)}</b>${marginPkgCol ? `<br><small style="color:${marginPkgCol};font-weight:700">${marginPkg}%${profitPkg!==null?' +'+formatCurrency(profitPkg):''}</small>` : ''}</div>`
                 : '';
             const bGrosir = p.priceWholesalePackage
-                ? `<div style="color:var(--secondary)">Grosir: <b>${formatCurrency(p.priceWholesalePackage)}</b>${p.minWholesalePackage ? ` <small>min ${p.minWholesalePackage}</small>` : ''}</div>`
+                ? `<div style="color:var(--secondary);margin-top:2px"><b style="font-size:14px">${formatCurrency(p.priceWholesalePackage)}</b>${p.minWholesalePackage ? `<br><small style="color:#888">min ${p.minWholesalePackage}</small>` : ''}</div>`
                 : '';
             if (bEcer || bGrosir) hargaKemasan = bEcer + bGrosir;
         }
+
+        const marginEcerCol = marginEcer !== null ? (marginEcer>=20?'#06D6A0':marginEcer>=10?'#F4A100':'#EF476F') : null;
+        const hargaSatuan = (() => {
+            const bEcer = p.price
+                ? `<div><b style="font-size:16px">${formatCurrency(p.price)}</b>${marginEcerCol ? `<br><small style="color:${marginEcerCol};font-weight:700">${marginEcer}%${profitEcer!==null?' +'+formatCurrency(profitEcer):''}</small>` : ''}</div>`
+                : '<span style="color:#ddd">—</span>';
+            const bGrosir = p.priceWholesale
+                ? `<div style="color:var(--secondary);margin-top:3px"><b style="font-size:15px">${formatCurrency(p.priceWholesale)}</b>${p.minWholesale ? `<br><small style="color:#888">min ${p.minWholesale} ${unit}</small>` : ''}</div>`
+                : '';
+            return bEcer + bGrosir;
+        })();
 
         // Highlight search match
         function hl(text) {
@@ -4520,29 +4643,23 @@ function renderProductTable(filter) {
         <tr>
             <td style="text-align:center;color:#aaa;font-size:13px">${idx + 1}</td>
             <td style="text-align:center">${iconHtml}</td>
-            <td>
+            <td style="max-width:160px;word-break:break-word">
                 <strong style="font-size:14px">${hl(p.name)}</strong>
                 <div style="font-size:11px;color:var(--gray);font-family:monospace">${p.sku || ''}</div>
                 ${pkgType && qty ? `<div style="font-size:11px;color:var(--secondary)">1 ${hl(pkgType)} = ${qty} ${unit}</div>` : ''}
             </td>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#856404">
-                ${costUnit > 0 ? formatCurrency(costUnit) + `<br><small style="color:#aaa;font-size:11px">/${unit}</small>` : '<span style="color:#ddd">—</span>'}
+            <td style="font-family:'JetBrains Mono',monospace;color:#856404">
+                ${costUnit > 0 ? `<b style="font-size:16px">${formatCurrency(costUnit)}</b><br><small style="color:#aaa;font-size:11px">/${unit}</small>` : '<span style="color:#ddd">—</span>'}
             </td>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#6D4C00">
-                ${costPkg > 0 && pkgType ? formatCurrency(costPkg) + `<br><small style="color:#aaa;font-size:11px">/${pkgType}</small>` : '<span style="color:#ddd">—</span>'}
+            <td style="font-family:'JetBrains Mono',monospace;color:#6D4C00">
+                ${costPkg > 0 && pkgType ? `<b style="font-size:16px">${formatCurrency(costPkg)}</b><br><small style="color:#aaa;font-size:11px">/${pkgType}</small>` : '<span style="color:#ddd">—</span>'}
             </td>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700">
-                ${formatCurrency(p.price)}<br><small style="color:#888;font-size:11px">/${unit}</small>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:700">
+                ${hargaSatuan}
             </td>
-            <td style="text-align:center">${marginBadge(marginEcer)}</td>
-            <td style="font-size:13px">
-                ${p.priceWholesale
-                    ? `<b>${formatCurrency(p.priceWholesale)}</b>${p.minWholesale ? `<br><small style="color:#888">min ${p.minWholesale} ${unit}</small>` : ''}`
-                    : '<span style="color:#ddd">—</span>'}
-            </td>
-            <td style="font-size:13px">${hargaKemasan}</td>
+            <td>${hargaKemasan}</td>
             <td>
-                <b style="font-size:15px">${p.stock}</b> <small>${unit}</small>${stockPkg}
+                <b style="font-size:16px">${p.stock}</b> <small>${unit}</small>${stockPkg}
             </td>
             <td>
                 <button class="btn" style="padding:6px 10px;font-size:13px;background:var(--secondary);color:white;margin-bottom:4px;display:block;width:100%" onclick="editProduct(${p.id})">✏️ Edit</button>
@@ -4570,7 +4687,9 @@ function editProduct(id) {
     document.getElementById('productCategory').value = product.category || 'sembako';
     document.getElementById('productUnit').value = product.ecerUnit || product.unit || '';
     document.getElementById('productPrice').value = product.price || '';
+    formatCurrencyInput(document.getElementById('productPrice'));
     document.getElementById('productPriceWholesale').value = product.priceWholesale || '';
+    formatCurrencyInput(document.getElementById('productPriceWholesale'));
     document.getElementById('productMinWholesale').value = product.minWholesale || '';
 
     // Kemasan kulakan
@@ -4580,6 +4699,7 @@ function editProduct(id) {
     const savedCostPerPkg = product.costPricePerPackage ||
         (product.costPrice && product.qtyPerPackage ? Math.round(product.costPrice * product.qtyPerPackage) : '');
     document.getElementById('costPricePerPkg').value = savedCostPerPkg || '';
+    formatCurrencyInput(document.getElementById('costPricePerPkg'));
     document.getElementById('productCostPrice').value = product.costPrice || '';
 
     // Stok
@@ -4588,7 +4708,9 @@ function editProduct(id) {
 
     // Harga kemasan jual
     document.getElementById('productPricePackage').value = product.pricePackage || '';
+    formatCurrencyInput(document.getElementById('productPricePackage'));
     document.getElementById('productPriceWholesalePackage').value = product.priceWholesalePackage || '';
+    formatCurrencyInput(document.getElementById('productPriceWholesalePackage'));
     document.getElementById('productMinWholesalePackage').value = product.minWholesalePackage || '';
     
     // Handle icon (emoji or image)
@@ -4817,7 +4939,7 @@ function showToast(msg) {
 function recalcKulakan() {
     const pkgType  = (document.getElementById('productPackageType').value || '').trim();
     const qtyPkg   = parseInt(document.getElementById('productQtyPerPackage').value) || 0;
-    const costPkg  = parseFloat(document.getElementById('costPricePerPkg').value) || 0;
+    const costPkg  = parseCurrencyInput(document.getElementById('costPricePerPkg')) || 0;
     const stokPkg  = parseInt(document.getElementById('stockInPkg').value) || 0;
     const unit     = (document.getElementById('productUnit').value || 'pcs').trim();
     const pkgLabel = pkgType || 'kemasan';
@@ -4889,10 +5011,10 @@ function renderSaranHarga(costPerUnit) {
     }
 
     const targets = [
-        { margin: 10, label: 'Tipis',    color: '#EF476F', grosirFactor: 0.95 },
-        { margin: 15, label: 'Standar',  color: '#F4A100', grosirFactor: 0.94 },
-        { margin: 20, label: 'Ideal ⭐', color: '#06D6A0', grosirFactor: 0.93, recommended: true },
-        { margin: 30, label: 'Gemuk',    color: '#FF6B35', grosirFactor: 0.91 },
+        { margin:  5, label: 'Tipis',    color: '#EF476F', grosirFactor: 0.96 },
+        { margin: 10, label: 'Standar',  color: '#F4A100', grosirFactor: 0.95 },
+        { margin: 15, label: 'Ideal ⭐', color: '#06D6A0', grosirFactor: 0.94, recommended: true },
+        { margin: 20, label: 'Gemuk',    color: '#FF6B35', grosirFactor: 0.93 },
     ];
 
     // --- SARAN SATUAN ---
@@ -4946,22 +5068,28 @@ function renderSaranHarga(costPerUnit) {
 }
 
 function applySaran(hargaJual, hargaGrosir) {
-    document.getElementById('productPrice').value = hargaJual;
-    document.getElementById('productPriceWholesale').value = hargaGrosir;
+    const elPrice = document.getElementById('productPrice');
+    const elWS = document.getElementById('productPriceWholesale');
+    elPrice.value = hargaJual;
+    formatCurrencyInput(elPrice);
+    elWS.value = hargaGrosir;
+    formatCurrencyInput(elWS);
     updateMarginLive();
-    const el = document.getElementById('productPrice');
-    el.style.background = '#E8FFF8';
-    setTimeout(() => { el.style.background = ''; }, 700);
+    elPrice.style.background = '#E8FFF8';
+    setTimeout(() => { elPrice.style.background = ''; }, 700);
 }
 
 function applySaranPkg(hargaPkg, hargaGrosirPkg) {
-    document.getElementById('productPricePackage').value = hargaPkg;
-    document.getElementById('productPriceWholesalePackage').value = hargaGrosirPkg;
+    const elPkg = document.getElementById('productPricePackage');
+    const elWsPkg = document.getElementById('productPriceWholesalePackage');
+    elPkg.value = hargaPkg;
+    formatCurrencyInput(elPkg);
+    elWsPkg.value = hargaGrosirPkg;
+    formatCurrencyInput(elWsPkg);
     updateMarginLive();
-    const el = document.getElementById('productPricePackage');
-    if (el) {
-        el.style.background = '#FFF8E1';
-        setTimeout(() => { el.style.background = ''; }, 700);
+    if (elPkg) {
+        elPkg.style.background = '#FFF8E1';
+        setTimeout(() => { elPkg.style.background = ''; }, 700);
     }
 }
 
@@ -4972,10 +5100,10 @@ function updateMarginLive() {
     const pkgType   = (document.getElementById('productPackageType').value || 'kemasan').trim();
     const unit      = (document.getElementById('productUnit').value || 'pcs').trim();
 
-    const hargaEcer  = parseFloat(document.getElementById('productPrice').value) || 0;
-    const hargaWS    = parseFloat(document.getElementById('productPriceWholesale').value) || 0;
-    const hargaPkg   = parseFloat(document.getElementById('productPricePackage').value) || 0;
-    const hargaWsPkg = parseFloat(document.getElementById('productPriceWholesalePackage').value) || 0;
+    const hargaEcer  = parseCurrencyInput(document.getElementById('productPrice')) || 0;
+    const hargaWS    = parseCurrencyInput(document.getElementById('productPriceWholesale')) || 0;
+    const hargaPkg   = parseCurrencyInput(document.getElementById('productPricePackage')) || 0;
+    const hargaWsPkg = parseCurrencyInput(document.getElementById('productPriceWholesalePackage')) || 0;
 
     function marginSpan(cost, jual, satuan) {
         if (!cost || !jual) return '';
@@ -5044,9 +5172,9 @@ function saveProduct() {
     const name       = document.getElementById('productName').value.trim();
     const sku        = document.getElementById('productSKU').value.trim();
     const category   = document.getElementById('productCategory').value;
-    const price      = parseFloat(document.getElementById('productPrice').value) || 0;
+    const price      = parseCurrencyInput(document.getElementById('productPrice')) || 0;
     const costPrice  = parseFloat(document.getElementById('productCostPrice').value) || 0;
-    const priceWS    = parseFloat(document.getElementById('productPriceWholesale').value) || 0;
+    const priceWS    = parseCurrencyInput(document.getElementById('productPriceWholesale')) || 0;
     const minWS      = parseInt(document.getElementById('productMinWholesale').value) || 0;
     const ecerUnit   = (document.getElementById('productUnit').value || '').trim();
     
@@ -5057,9 +5185,9 @@ function saveProduct() {
 
     const pkgType    = (document.getElementById('productPackageType').value||'').trim();
     const qtyPerPkg  = parseInt(document.getElementById('productQtyPerPackage').value) || 0;
-    const costPerPkg = parseFloat(document.getElementById('costPricePerPkg').value) || 0;
-    const pricePkg      = parseFloat(document.getElementById('productPricePackage').value) || 0;
-    const priceWsPkg    = parseFloat(document.getElementById('productPriceWholesalePackage').value) || 0;
+    const costPerPkg = parseCurrencyInput(document.getElementById('costPricePerPkg')) || 0;
+    const pricePkg      = parseCurrencyInput(document.getElementById('productPricePackage')) || 0;
+    const priceWsPkg    = parseCurrencyInput(document.getElementById('productPriceWholesalePackage')) || 0;
     const minWsPkg      = parseInt(document.getElementById('productMinWholesalePackage').value) || 0;
 
     if (!name || !ecerUnit || price <= 0) {
